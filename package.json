@@ -1,0 +1,1 @@
+{"name":"pida","version":"1.6.0","main":"server.js","description":"PIDA - Payment Initiation with Digital Account Verification","scripts":{"start":"node server.js"},"keywords":["tink","payment","psd2","open-banking"],"author":"","license":"MIT","dependencies":{"dotenv":"^16.0.3","express":"^5.2.1","nodemailer":"^6.9.7"}}
