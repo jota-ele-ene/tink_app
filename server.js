@@ -53,7 +53,6 @@ app.listen(config.port, () => {
 // Load from .env or use defaults
 const CLIENT_ID = config.tink_client_id;
 const CLIENT_SECRET = config.tink_client_secret;
-const CALLBACK_REDIRECT_URI = config.callback_url;
 const SERVER_PORT = config.server_port;
 const GMAIL_USER = config.gmail_user;
 const GMAIL_PASS = config.gmail_pass;
@@ -155,10 +154,14 @@ const server = http.createServer((req, res) => {
     query: q,
   });
 
+  if (!config.callback_url) {
+    const myServer = new URL(req.headers.referer);
+    console.log(myServer.origin); // "https://ejemplo.com"
+    config.callback_url = myServer.origin + "/callback";
+    log("INFO", "Setting callback URL to  " + config.callback_url);
+  }
+
   if (p === "/") {
-    config.hostname = req.headers.host;
-    log("INFO", "Sirviendo home.html desde " + config.hostname);
-    config.callback_url = `http://${config.hostname}:${config.port}/callback`;
     res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
     res.end(loadTemplate("home.html"));
     return;
@@ -247,7 +250,7 @@ const server = http.createServer((req, res) => {
 
       log("SESSION_CREATED", `Sesión: ${sId}`, { eV, eP, amt, cur });
 
-      const ackUrl = `https://link.tink.com/1.0/account-check/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(CALLBACK_REDIRECT_URI)}?session=${sId}&market=${DEFAULT_MARKET}&locale=es_ES&input_provider=es-demobank-open-banking-embedded`;
+      const ackUrl = `https://link.tink.com/1.0/account-check/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(config.callback_url)}?session=${sId}&market=${DEFAULT_MARKET}&locale=es_ES&input_provider=es-demobank-open-banking-embedded`;
 
       log("ACCOUNT_CHECK_URL", "URL generada", { url: ackUrl });
 
@@ -278,7 +281,7 @@ const server = http.createServer((req, res) => {
           const confirmTemplate = loadTemplate("email_sent_confirmation.html");
           const html = confirmTemplate
             .replace("{EMAIL}", eV)
-            .replace("{AMOUNT}", amt)
+            .replace("{AMOUNT}", formatNumber(amt))
             .replace("{CURRENCY}", cur)
             .replace("{SESSION_ID}", sId);
 
@@ -505,7 +508,7 @@ function handleAccountWithAuthCode(res, rId, authCode, sId) {
 
           log("PAYMENT_REQUEST_CREATED", `Payment ID: ${pId}`);
 
-          const pUrl = `https://link.tink.com/1.0/pay/?client_id=${CLIENT_ID}&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&market=${mk}&locale=es_ES&payment_request_id=${pId}`;
+          const pUrl = `https://link.tink.com/1.0/pay/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(config.callback_url)}&market=${mk}&locale=es_ES&payment_request_id=${pId}`;
 
           log("PAYMENT_URL_GENERATED", "URL generada", { url: pUrl });
 
@@ -696,7 +699,7 @@ function handleAccount(res, rId, sId) {
 
         log("PAYMENT_REQUEST_CREATED", `Payment ID: ${pId}`);
 
-        const pUrl = `https://link.tink.com/1.0/pay/?client_id=${CLIENT_ID}&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fcallback&market=${mk}&locale=es_ES&payment_request_id=${pId}`;
+        const pUrl = `https://link.tink.com/1.0/pay/?client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(config.callback_url)}&market=${mk}&locale=es_ES&payment_request_id=${pId}`;
 
         log("PAYMENT_URL_GENERATED", "URL generada", { url: pUrl });
 
